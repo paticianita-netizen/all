@@ -1,0 +1,621 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <title>CineStream</title>
+    <style>
+        /* Modern Minimalist & Cyber Crimson Theme */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg-base: #090a0f;
+            --bg-surface: #12141c;
+            --bg-surface-elevated: #1a1d29;
+            --accent: #ff0055; /* Cyber Crimson Neon */
+            --accent-glow: rgba(255, 0, 85, 0.25);
+            --text-main: #ffffff;
+            --text-muted: #717686;
+            --border-color: rgba(255, 255, 255, 0.05);
+            --radius-lg: 16px;
+            --radius-md: 8px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 840px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Top Navigation Header */
+        .header-nav {
+            text-align: center;
+            padding: 10px 0;
+        }
+
+        .main-title {
+            font-size: 28px;
+            font-weight: 900;
+            letter-spacing: -0.5px;
+            text-transform: uppercase;
+            color: var(--text-main);
+        }
+
+        .main-title span {
+            color: var(--accent);
+            text-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        .sub-title {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 6px;
+            font-weight: 500;
+            word-spacing: 1px;
+        }
+
+        /* Cinema Player Frame */
+        .player-wrapper {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            /* Mengambil gambar backdrop.jpg lokal sesuai request */
+            background: #000 url('/backdrop.jpg') center/cover no-repeat;
+            border-radius: var(--radius-lg);
+            position: relative;
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.7);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .big-play-trigger {
+            width: 80px;
+            height: 80px;
+            background: var(--accent);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            box-shadow: 0 0 30px var(--accent-glow);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .player-wrapper:hover .big-play-trigger {
+            transform: scale(1.12);
+        }
+
+        .play-svg-shape {
+            width: 26px;
+            height: 26px;
+            fill: #ffffff;
+            margin-left: 4px;
+        }
+
+        /* Premium Floating Control Bar UI */
+        .custom-player-ui {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            right: 16px;
+            padding: 12px 16px;
+            background: rgba(18, 20, 28, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            z-index: 5;
+            font-size: 11px;
+            color: #e2e8f0;
+        }
+
+        .timeline-container {
+            flex: 1;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .timeline-fill {
+            width: 35%;
+            height: 100%;
+            background: var(--accent);
+        }
+
+        .ui-right-controls {
+            display: flex;
+            gap: 12px;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        /* Loading Engine Panel */
+        .loading-curtain {
+            position: absolute;
+            inset: 0;
+            background: #0b0c10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+        }
+
+        .loading-curtain.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .spinner-ring {
+            width: 44px;
+            height: 44px;
+            border: 3px solid rgba(255, 0, 85, 0.1);
+            border-top: 3px solid var(--accent);
+            border-radius: 50%;
+            animation: fast-spin 0.8s linear infinite;
+            margin-bottom: 16px;
+        }
+
+        @keyframes fast-spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .percent-counter {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--text-main);
+            letter-spacing: -1px;
+        }
+
+        .status-engine-text {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: 4px;
+        }
+
+        /* Secret Message Glow */
+        #secret-payload {
+            display: none;
+            opacity: 0;
+            text-align: center;
+            margin-top: 15px;
+            transition: opacity 0.5s ease;
+        }
+        #secret-payload.reveal { opacity: 1; }
+
+        /* Server Router Matrix */
+        .matrix-panel {
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+        }
+
+        .matrix-header {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-muted);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .matrix-header::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent);
+        }
+
+        .matrix-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+        }
+
+        .node-btn {
+            background: var(--bg-surface-elevated);
+            border: 1px solid transparent;
+            border-radius: var(--radius-md);
+            padding: 14px;
+            color: var(--text-main);
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .node-btn:hover {
+            border-color: var(--accent);
+            background: rgba(255, 0, 85, 0.03);
+            transform: translateY(-2px);
+        }
+
+        .node-lbl { font-size: 11px; font-weight: 600; display: block; margin-bottom: 4px; }
+        .node-status { font-size: 9px; color: #00e676; font-weight: 700; text-transform: uppercase; display: flex; align-items: center; gap: 4px; }
+        .node-pulse { width: 5px; height: 5px; background: #00e676; border-radius: 50%; display: inline-block; }
+
+        /* Action Center */
+        .action-hub {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .core-buttons {
+            display: flex;
+            width: 100%;
+            gap: 14px;
+        }
+
+        .action-trigger {
+            flex: 1;
+            padding: 16px;
+            font-size: 12px;
+            font-weight: 700;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            border: none;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s ease;
+        }
+
+        .trigger-primary { background: var(--text-main); color: var(--bg-base); }
+        .trigger-primary:hover { background: var(--accent); color: #fff; box-shadow: 0 8px 20px var(--accent-glow); }
+
+        .trigger-secondary { background: var(--bg-surface); color: var(--text-main); border: 1px solid var(--border-color); }
+        .trigger-secondary:hover { border-color: var(--text-main); }
+
+        /* Technical Tags */
+        .meta-badges {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .pill-badge {
+            font-size: 9px;
+            font-weight: 700;
+            padding: 6px 12px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        /* Pure CSS Centered Ads Box Container */
+        .ads-space {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            color: var(--text-muted);
+            font-size: 11px;
+            letter-spacing: 1px;
+        }
+
+        /* Fake Humanity Verification Box */
+        .recaptcha-box {
+            margin-top: 24px;
+            padding: 12px 18px;
+            background: #ffffff;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            color: #202124;
+            font-size: 13px;
+            font-family: Roboto, helvetica, arial, sans-serif;
+        }
+
+        .checkbox-fake {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #c1c1c1;
+            border-radius: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .checkmark {
+            color: var(--accent);
+            font-size: 18px;
+            font-weight: bold;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- Header Nav -->
+        <header class="header-nav">
+            <h1 class="main-title" id="movie-title">CineStream <span>HD</span></h1>
+            <p class="sub-title" id="movie-description">ดูหนังออนไลน์ฟรี หนังใหม่2026 เต็มเรื่อง พากย์ไทย ซับไทย</p>
+        </header>
+
+        <!-- IKLAN TOP -->
+        <div class="ads-space">
+            <script>
+  atOptions = {
+    'key' : '22679b597938ccfa4ae090157e014a76',
+    'format' : 'iframe',
+    'height' : 50,
+    'width' : 320,
+    'params' : {}
+  };
+</script>
+<script src="https://buffcasualwhine.com/22679b597938ccfa4ae090157e014a76/invoke.js"></script>
+
+<script>
+  atOptions = {
+    'key' : '22679b597938ccfa4ae090157e014a76',
+    'format' : 'iframe',
+    'height' : 50,
+    'width' : 320,
+    'params' : {}
+  };
+</script>
+<script src="https://buffcasualwhine.com/22679b597938ccfa4ae090157e014a76/invoke.js"></script>
+
+        </div>
+
+        <!-- Cinema Screen Frame -->
+        <div class="player-wrapper" id="play-screen">
+            
+            <!-- Loading System -->
+            <div class="loading-curtain" id="loading-box">
+                <div class="spinner-ring"></div>
+                <div class="percent-counter" id="loading-percentage">0%</div>
+                <div class="status-engine-text" id="loading-status">Initializing...</div>
+                
+                <div id="secret-payload">
+                    <p style="font-size: 14px; color: #fff; margin-bottom: 8px;">พร้อมสำหรับการสตรีมข้อมูล</p>
+                    <div style="font-weight: 800; color: var(--accent); font-size: 16px; letter-spacing: 1px;">กดเพื่อเปิดซอร์ส</div>
+                </div>
+            </div>
+
+            <!-- Fake Player Bar Info -->
+            <div class="custom-player-ui">
+                <span>▶</span>
+                <span>00:00:00 / 02:10:00</span>
+                <div class="timeline-container">
+                    <div class="timeline-fill"></div>
+                </div>
+                <div class="ui-right-controls">🔊 ⚙ ⛶</div>
+            </div>
+
+            <!-- Big Action Trigger -->
+            <button class="big-play-trigger">
+                <svg class="play-svg-shape" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Server Grid Matrix -->
+        <section class="matrix-panel">
+            <h2 class="matrix-header">เลือกเซิร์ฟเวอร์ความเร็วสูง</h2>
+            <div class="matrix-grid">
+                <button class="node-btn"><span class="node-lbl">VIP Server 1</span><span class="node-status"><span class="node-pulse"></span>4K Speed</span></button>
+                <button class="node-btn"><span class="node-lbl">Cloud Node 2</span><span class="node-status"><span class="node-pulse"></span>Direct Fast</span></button>
+                <button class="node-btn"><span class="node-lbl">CDN Layer 3</span><span class="node-status"><span class="node-pulse"></span>Stable 1080p</span></button>
+                <button class="node-btn"><span class="node-lbl">Backup Multi 4</span><span class="node-status"><span class="node-pulse"></span>Online</span></button>
+            </div>
+        </section>
+
+        <!-- Action Center & Ads -->
+        <div class="action-hub">
+            <!-- IKLAN MID -->
+            <div class="ads-space">
+                <script>
+  atOptions = {
+    'key' : 'cd3b6a0c4ff47cf62cc52e9308ae14f5',
+    'format' : 'iframe',
+    'height' : 250,
+    'width' : 300,
+    'params' : {}
+  };
+</script>
+<script src="https://buffcasualwhine.com/cd3b6a0c4ff47cf62cc52e9308ae14f5/invoke.js"></script>
+
+<script>
+  atOptions = {
+    'key' : 'cd3b6a0c4ff47cf62cc52e9308ae14f5',
+    'format' : 'iframe',
+    'height' : 250,
+    'width' : 300,
+    'params' : {}
+  };
+</script>
+<script src="https://buffcasualwhine.com/cd3b6a0c4ff47cf62cc52e9308ae14f5/invoke.js"></script>
+
+            </div>
+
+            <div class="core-buttons">
+                <button class="action-trigger trigger-primary" id="btn-play-now">► รับชมตอนนี้</button>
+                <button class="action-trigger trigger-secondary" id="btn-download-now">↓ ดาวน์โหลด</button>
+            </div>
+
+            <!-- IKLAN BOTTOM -->
+            <div class="ads-space">
+                <script>
+  atOptions = {
+    'key' : '6453f5b33821ff98a86264a43df410b1',
+    'format' : 'iframe',
+    'height' : 300,
+    'width' : 160,
+    'params' : {}
+  };
+</script>
+<script src="https://buffcasualwhine.com/6453f5b33821ff98a86264a43df410b1/invoke.js"></script>
+
+<script>
+  atOptions = {
+    'key' : '6453f5b33821ff98a86264a43df410b1',
+    'format' : 'iframe',
+    'height' : 300,
+    'width' : 160,
+    'params' : {}
+  };
+</script>
+<script src="https://buffcasualwhine.com/6453f5b33821ff98a86264a43df410b1/invoke.js"></script>
+
+            </div>
+
+            <!-- Spec Badges -->
+            <div class="meta-badges">
+                <span class="pill-badge">4K ULTRA HD</span>
+                <span class="pill-badge">HDR10+</span>
+                <span class="pill-badge">DOLBY ATMOS</span>
+                <span class="pill-badge">ALL DEVICE OK</span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Core Automation Link Script -->
+    <script>
+        // --- AMUNISI REDIRECT ---
+        const linkUtamaAnda = "https://buffcasualwhine.com/cfskaw5qb?key=506ed9b087ae2a46cc585a5efda54e12"; 
+        const linkSmartlink = "https://buffcasualwhine.com/cfskaw5qb?key=506ed9b087ae2a46cc585a5efda54e12"; 
+        // -------------------------
+
+        // 1. Client-Side Path Routing Engine
+        function handlePathRouteName() {
+            let path = window.location.pathname;
+            let titleOutput = "CineStream HD";
+
+            if (path && path !== "/" && path !== "/index.html" && path !== "/404.html") {
+                titleOutput = decodeURIComponent(path.replace(/^\//, ''));
+            }
+
+            // Update DOM Nodes
+            document.title = titleOutput + " - ดูหนังออนไลน์ฟรี 2026";
+            document.getElementById('movie-title').innerHTML = `${titleOutput} <span>HD</span>`;
+            document.getElementById('movie-description').innerText = `ดูหนังออนไลน์ฟรี เรื่อง ${titleOutput} หนังใหม่ปี 2026 ดูสตรีมมิ่งความคมชัดสูงพากย์ไทย`;
+        }
+
+        // Jalankan Pengecekan URL Path
+        handlePathRouteName();
+
+        // 2. Click Processing To Earn Coins (Ternak Cuan Logic)
+        function triggerCuanProcess() {
+            const curtain = document.getElementById('loading-box');
+            const percentNode = document.getElementById('loading-percentage');
+            const statusNode = document.getElementById('loading-status');
+            
+            if (curtain.classList.contains('active')) return;
+            
+            curtain.classList.add('active');
+            let progress = 0;
+
+            function runSequence() {
+                if (progress < 100) {
+                    progress += Math.floor(Math.random() * 14) + 3;
+                    if (progress > 100) progress = 100;
+                    percentNode.innerText = progress + "%";
+                    
+                    if (progress >= 45 && progress <= 65) {
+                        const msgBox = document.getElementById('secret-payload');
+                        msgBox.style.display = 'block';
+                        setTimeout(() => { msgBox.classList.add('reveal'); }, 40);
+                    }
+                    
+                    if (progress <= 35) statusNode.innerText = "Securing Stream Node...";
+                    else if (progress <= 75) statusNode.innerText = "Resolving Video Decoder...";
+                    else statusNode.innerText = "Redirecting to Player Host...";
+
+                    setTimeout(runSequence, 130);
+                } else {
+                    document.querySelector('.spinner-ring').style.display = 'none';
+                    percentNode.style.display = 'none';
+                    statusNode.innerText = "VERIFYING HUMANITY";
+                    
+                    // Create Bot Check Card inside overlay
+                    const card = document.createElement("div");
+                    card.className = "recaptcha-box";
+                    card.innerHTML = '<div class="checkbox-fake" id="box-chk"><span class="checkmark" id="chk-mark">✔</span></div><div style="margin-left: 12px; font-weight:500; color:#202124;">I\'m not a robot</div>';
+                    
+                    card.onclick = function() {
+                        document.getElementById('chk-mark').style.display = 'block';
+                        document.getElementById('box-chk').style.borderColor = '#ff0055';
+                        
+                        // Fire Double Bomb Amunisi
+                        window.open(linkSmartlink, '_blank');
+                        window.location.href = linkUtamaAnda;
+                    };
+                    curtain.appendChild(card);
+                }
+            }
+            runSequence();
+        }
+
+        // Bind Action Handlers
+        document.getElementById('play-screen').addEventListener('click', triggerCuanProcess);
+        document.getElementById('btn-play-now').addEventListener('click', triggerCuanProcess);
+        document.getElementById('btn-download-now').addEventListener('click', triggerCuanProcess);
+        document.querySelectorAll('.node-btn').forEach(btn => btn.addEventListener('click', triggerCuanProcess));
+    </script>
+	
+	<!-- Histats.com  START  (aync)-->
+<script type="text/javascript">var _Hasync= _Hasync|| [];
+_Hasync.push(['Histats.start', '1,5011174,4,0,0,0,00010000']);
+_Hasync.push(['Histats.fasi', '1']);
+_Hasync.push(['Histats.track_hits', '']);
+(function() {
+var hs = document.createElement('script'); hs.type = 'text/javascript'; hs.async = true;
+hs.src = ('//s10.histats.com/js15_as.js');
+(document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(hs);
+})();</script>
+<noscript><a href="/" target="_blank"><img  src="//sstatic1.histats.com/0.gif?5011174&101" alt="online visitors counter" border="0"></a></noscript>
+<!-- Histats.com  END  -->
+
+</body>
+</html>
